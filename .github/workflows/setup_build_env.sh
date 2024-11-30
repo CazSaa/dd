@@ -6,8 +6,7 @@
 
 set -x
 set -e
-sudo apt install \
-    graphviz
+brew install graphviz
 dot -V
 pip install --upgrade \
     pip \
@@ -17,6 +16,7 @@ pip install --upgrade \
 # would also install packages that
 # may be absent from where `dd` will be installed
 pip install cython
+exit
 #
 # install `sylvan`
 # download

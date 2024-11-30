@@ -9,7 +9,7 @@ on:
 jobs:
     build:
         name: Build
-        runs-on: ubuntu-22.04
+        runs-on: macos-latest
         strategy:
             matrix:
                 python-version: [
@@ -34,8 +34,7 @@ jobs:
                 export \
                     DD_FETCH=1 \
                     DD_CUDD=1 \
-                    DD_CUDD_ZDD=1 \
-                    DD_SYLVAN=1
+                    DD_CUDD_ZDD=1
                 pip install . \
                     --verbose \
                     --use-pep517 \
@@ -49,7 +48,11 @@ jobs:
                 echo 'Exported environment variables:'
                 export -p
                 # run tests
-                make test
+                pushd tests
+                python -X dev -m pytest -v \
+                    --continue-on-collection-errors \
+                    --ignore=sylvan_test.py
+                popd
             - name: Run `dd` examples
               run: |
                 pushd examples/

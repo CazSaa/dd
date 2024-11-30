@@ -51,7 +51,7 @@ CUDD_CFLAGS = [
     '-std=c99',
     '-DBSD',
     '-DHAVE_IEEE_754',
-    '-mtune=native', '-pthread', '-fwrapv',
+    '-pthread', '-fwrapv',
     '-fno-strict-aliasing',
     '-Wall', '-W', '-O3']
 sizeof_long = ctypes.sizeof(ctypes.c_long)
