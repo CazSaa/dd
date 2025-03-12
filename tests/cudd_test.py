@@ -312,5 +312,29 @@ def test_function():
     assert not_x.negated
 
 
+def test_eval():
+    bdd = _cudd.BDD()
+    bdd.declare('a', 'b', 'c', 'd')
+    ab = bdd.add_expr("a & b")
+    c_or_d = bdd.add_expr("c | d")
+
+    assert ab.eval({'a': False, 'b': False}) == False
+    assert ab.eval({'a': False, 'b': True}) == False
+    assert ab.eval({'a': True, 'b': False}) == False
+    assert ab.eval({'a': True, 'b': True}) == True
+
+    assert c_or_d.eval({'c': False, 'd': False}) == False
+    assert c_or_d.eval({'c': False, 'd': True}) == True
+    assert c_or_d.eval({'c': True, 'd': False}) == True
+    assert c_or_d.eval({'c': True, 'd': True}) == True
+
+    with pytest.raises(ValueError):
+        ab.eval({'a': True})
+    with pytest.raises(ValueError):
+        ab.eval({'b': True})
+    with pytest.raises(ValueError):
+        ab.eval({'not_existing': True, 'a': True, 'b': True})
+
+
 if __name__ == '__main__':
     test_function()
