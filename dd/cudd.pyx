@@ -312,6 +312,11 @@ cdef extern from 'cudd.h':
         DdManager *dd,
         DdNode *f, DdNode **x, DdNode **y,
         int n)
+    # Eval
+    DdNode *Cudd_Eval(
+        DdManager *dd,
+        DdNode *f,
+        int *inputs)
 cdef extern from '_cudd_addendum.c':
     DdNode *Cudd_bddTransferRename(
         DdManager *ddSource,
@@ -1591,6 +1596,52 @@ cdef class BDD:
                 'overflow of integer '
                 'type double')
         return r
+
+    def eval(
+            self,
+            f:
+                Function,
+            assignment:
+                _Assignment
+            ) -> bool:
+        """Evaluate the BDD for a given variable assignment.
+
+        Returns the result (either True or False).
+
+        @param f:
+            BDD to evaluate
+        @param assignment:
+            mapping from variable names to Boolean values
+        @return:
+            the result of the evaluation
+        """
+        if f.manager != self.manager:
+            raise ValueError(
+                '`f.manager != self.manager`')
+        missing_vars = f.support - set(assignment.keys())
+        if len(missing_vars) > 0:
+            raise ValueError(
+                f'Missing variable assignments: {missing_vars}')
+
+        n_cudd_vars = self._number_of_cudd_vars()
+        cdef int *inputs
+        inputs = <int *> PyMem_Malloc(n_cudd_vars * sizeof(int))
+
+        try:
+            # Set values from the assignment
+            for var, value in assignment.items():
+                if var not in self._index_of_var:
+                    raise ValueError(f'Unknown variable: {var}')
+                idx = self._index_of_var[var]
+                inputs[idx] = 1 if value else 0
+
+            r = Cudd_Eval(self.manager, f.node, inputs)
+            if not Cudd_IsConstant(r):
+                raise RuntimeError("Evaluation did not result in a constant node")
+
+            return r == Cudd_ReadOne(self.manager)
+        finally:
+            PyMem_Free(inputs)
 
     def pick(
             self,
@@ -2931,6 +2982,16 @@ cdef class Function:
             ) -> set[_VariableName]:
         """Return `set` of variables in support."""
         return self.bdd.support(self)
+
+    def eval(self, assignment: _Assignment) -> bool:
+        """Evaluate BDD with assignment `assignment`.
+
+        @param assignment:
+            assignment of variables to values
+        @return:
+            evaluation of BDD with assignment `assignment`
+        """
+        return self.bdd.eval(self, assignment)
 
     def __dealloc__(
             self
