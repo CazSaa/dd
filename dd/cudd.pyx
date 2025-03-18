@@ -179,6 +179,12 @@ cdef extern from 'cudd.h':
         DdGen *gen)
     double Cudd_CountMinterm(
         DdManager *dd, DdNode *f, int nvars)
+    # primes
+    DdGen *Cudd_FirstPrime(
+        DdManager *dd, DdNode *l,
+        DdNode *u, int **cube)
+    int Cudd_NextPrime(
+        DdGen *gen, int **cube)
     # refs
     void Cudd_Ref(
         DdNode *n)
@@ -1721,6 +1727,43 @@ cdef class BDD:
             Cudd_GenFree(gen)
         self.configure(
             reordering=config['reordering'])
+
+    def prime_iter(
+            self,
+            l:
+                Function,
+            u:
+                Function,
+            ) -> _abc.Iterable[_Assignment]:
+        """Return iterator over primes."""
+        if l.manager != self.manager:
+            raise ValueError(
+                '`l.manager != self.manager`')
+        if u.manager != self.manager:
+            raise ValueError(
+                '`u.manager != self.manager`')
+        cdef DdGen *gen
+        cdef int *cube
+
+        config = self.configure(reordering=False)
+        gen = Cudd_FirstPrime(self.manager, l.node,
+                              u.node, &cube)
+        if gen is NULL:
+            raise RuntimeError('first prime failed')
+        try:
+            r = 1
+            while Cudd_IsGenEmpty(gen) == 0:
+                if r != 1:
+                    raise RuntimeError(
+                        'gen not empty but '
+                        'no next prime', r)
+                d = _cube_array_to_dict(
+                    cube, self._index_of_var)
+                yield d
+                r = Cudd_NextPrime(gen, &cube)
+        finally:
+            Cudd_GenFree(gen)
+        self.configure(reordering=config['reordering'])
 
     def pick_iter(
             self,
