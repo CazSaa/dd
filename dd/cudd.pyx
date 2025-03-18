@@ -185,6 +185,11 @@ cdef extern from 'cudd.h':
         DdNode *u, int **cube)
     int Cudd_NextPrime(
         DdGen *gen, int **cube)
+    # iteration
+    DdGen *Cudd_FirstNode(
+        DdManager *dd, DdNode *f, DdNode **node)
+    int Cudd_NextNode(
+        DdGen *gen, DdNode **node)
     # refs
     void Cudd_Ref(
         DdNode *n)
@@ -1727,6 +1732,34 @@ cdef class BDD:
             Cudd_GenFree(gen)
         self.configure(
             reordering=config['reordering'])
+
+    def node_iter(
+            self,
+            u:
+                Function,
+            ) -> _abc.Iterable[Function]:
+        """Return iterator over nodes in reverse-topological order."""
+        if u.manager != self.manager:
+            raise ValueError(
+                '`u.manager != self.manager`')
+        cdef DdGen *gen
+        cdef DdNode *node
+
+        gen = Cudd_FirstNode(self.manager, u.node, &node)
+        if gen is NULL:
+            raise RuntimeError('first node failed')
+        try:
+            r = 1
+            while Cudd_IsGenEmpty(gen) == 0:
+                if r != 1:
+                    raise RuntimeError(
+                        'gen not empty but '
+                        'no next node', r)
+                yield wrap(self, node)
+                r = Cudd_NextNode(gen, &node)
+        finally:
+            Cudd_GenFree(gen)
+
 
     def prime_iter(
             self,
