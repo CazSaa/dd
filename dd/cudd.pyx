@@ -3052,6 +3052,13 @@ cdef class Function:
         return Cudd_IsComplement(self.node)
 
     @property
+    def regular(
+            self
+            ) -> Function:
+        """Return regular node."""
+        return wrap(self.bdd, Cudd_Regular(self.node))
+
+    @property
     def support(
             self:
                 BDD
