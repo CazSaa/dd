@@ -1543,8 +1543,9 @@ cdef class ADD:
                 x[index] = g.node
 
             else:
-                x[index] = Cudd_addIthVar(
-                    self.manager, index)
+                tmp = Cudd_addIthVar(self.manager, index)
+                g = wrap(self, tmp)
+                x[index] = g.node
         try:
             r = Cudd_addVectorCompose(
                 self.manager, u.node, x)
