@@ -1541,9 +1541,11 @@ cdef class ADD:
                         'is not in an ADD '
                         'in this manager')
                 x[index] = g.node
+
             else:
-                x[index] = Cudd_addIthVar(
-                    self.manager, index)
+                tmp = Cudd_addIthVar(self.manager, index)
+                g = wrap(self, tmp)
+                x[index] = g.node
         try:
             r = Cudd_addVectorCompose(
                 self.manager, u.node, x)
@@ -1716,8 +1718,7 @@ cdef class ADD:
               algebraic decision diagram maps
               the assignment `var_values` to.
         """
-        # TODO: with_values
-        return next(self.pick_iter(u, care_vars), None)
+        return next(self.pick_iter(u, care_vars, with_values), None)
 
     def pick_iter(
             self,
@@ -1777,7 +1778,10 @@ cdef class ADD:
                         set(var_values).difference(support))
                 for m in _bdd._enumerate_minterms(
                         var_values, care_vars):
-                    yield m
+                    if with_values:
+                        yield (m, value)
+                    else:
+                        yield m
                 r = Cudd_NextCube(gen, &cube, &value)
         finally:
             Cudd_GenFree(gen)
